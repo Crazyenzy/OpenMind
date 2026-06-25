@@ -235,6 +235,52 @@ LTX-Video runs on 12GB. For a group with mixed hardware, start with LTX-Video as
 
 ---
 
+## 🏗️ Built On
+
+OpenMind would not exist without these three incredible open-source projects. All credit for the core engines goes to their respective teams:
+
+<table>
+  <tr>
+    <td align="center" width="33%">
+      <a href="https://github.com/pewdiepie-archdaemon/odysseus">
+        <img src="https://img.shields.io/github/stars/pewdiepie-archdaemon/odysseus?style=for-the-badge&logo=github&label=Odysseus" alt="Odysseus Stars" />
+      </a>
+      <br />
+      <b>Odysseus</b>
+      <br />
+      Per-person AI workspace — chat, agents, deep research, docs, memory, email, calendar
+      <br />
+      <sub>License: Apache 2.0</sub>
+    </td>
+    <td align="center" width="33%">
+      <a href="https://github.com/hyperspaceai/agi">
+        <img src="https://img.shields.io/github/stars/hyperspaceai/agi?style=for-the-badge&logo=github&label=Hyperspace%20AGI" alt="Hyperspace Stars" />
+      </a>
+      <br />
+      <b>Hyperspace AGI</b>
+      <br />
+      P2P distributed LLM inference with model sharding via libp2p
+      <br />
+      <sub>License: MIT</sub>
+    </td>
+    <td align="center" width="33%">
+      <a href="https://github.com/robertvoy/ComfyUI-Distributed">
+        <img src="https://img.shields.io/github/stars/robertvoy/ComfyUI-Distributed?style=for-the-badge&logo=github&label=ComfyUI-Distributed" alt="ComfyUI-Distributed Stars" />
+      </a>
+      <br />
+      <b>ComfyUI-Distributed</b>
+      <br />
+      Multi-GPU image & video generation across machines
+      <br />
+      <sub>License: MIT</sub>
+    </td>
+  </tr>
+</table>
+
+> **OpenMind is glue code.** The real magic comes from these three projects. Please ⭐ star them!
+
+---
+
 ## License
 
 MIT — all glue code in this repo. Individual components retain their original licenses (Odysseus: Apache 2.0, Hyperspace: MIT, ComfyUI-Distributed: MIT).
