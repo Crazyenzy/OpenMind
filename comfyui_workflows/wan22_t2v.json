@@ -1,0 +1,32 @@
+{
+  "1": {
+    "class_type": "CLIPTextEncode",
+    "inputs": {"clip": ["19", 0], "text": "PROMPT_PLACEHOLDER"}
+  },
+  "2": {
+    "class_type": "CLIPTextEncode",
+    "inputs": {"clip": ["19", 0], "text": "NEGATIVE_PLACEHOLDER"}
+  },
+  "3": {
+    "class_type": "WanVideoSampler",
+    "inputs": {
+      "cfg": 5, "seed": 0, "steps": 20,
+      "width": 1280, "height": 720,
+      "negative": ["2", 0], "positive": ["1", 0],
+      "scheduler": "simple", "num_frames": 121,
+      "sampler_name": "uni_pc"
+    }
+  },
+  "4": {
+    "class_type": "SaveVideo",
+    "inputs": {"fps": 24, "samples": ["3", 0], "filename_prefix": "wan22_"}
+  },
+  "5": {
+    "class_type": "Distributed Seed",
+    "inputs": {"seed": 0, "distributed_config": {}}
+  },
+  "6": {
+    "class_type": "Distributed Collector",
+    "inputs": {"images": ["4", 0], "workers": "auto"}
+  }
+}

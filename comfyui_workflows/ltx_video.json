@@ -1,0 +1,29 @@
+{
+  "1": {
+    "class_type": "CLIPTextEncode",
+    "inputs": {"clip": ["10", 0], "text": "PROMPT_PLACEHOLDER"}
+  },
+  "2": {
+    "class_type": "CLIPTextEncode",
+    "inputs": {"clip": ["10", 0], "text": "NEGATIVE_PLACEHOLDER"}
+  },
+  "3": {
+    "class_type": "LTXVideoSampler",
+    "inputs": {
+      "seed": 0, "width": 1280, "height": 720,
+      "length": 121, "negative": ["2", 0], "positive": ["1", 0]
+    }
+  },
+  "4": {
+    "class_type": "SaveVideo",
+    "inputs": {"fps": 24, "samples": ["3", 0], "filename_prefix": "ltx_"}
+  },
+  "5": {
+    "class_type": "Distributed Seed",
+    "inputs": {"seed": 0, "distributed_config": {}}
+  },
+  "6": {
+    "class_type": "Distributed Collector",
+    "inputs": {"images": ["4", 0], "workers": "auto"}
+  }
+}

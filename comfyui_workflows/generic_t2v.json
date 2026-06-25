@@ -1,0 +1,32 @@
+{
+  "1": {
+    "class_type": "CLIPTextEncode",
+    "inputs": {"text": "PROMPT_PLACEHOLDER"}
+  },
+  "2": {
+    "class_type": "CLIPTextEncode",
+    "inputs": {"text": "NEGATIVE_PLACEHOLDER"}
+  },
+  "3": {
+    "class_type": "KSampler",
+    "inputs": {
+      "cfg": 7, "seed": 0, "steps": 20,
+      "width": 1280, "height": 720,
+      "negative": ["2", 0], "positive": ["1", 0],
+      "scheduler": "normal", "sampler_name": "euler",
+      "num_frames": 49
+    }
+  },
+  "4": {
+    "class_type": "SaveVideo",
+    "inputs": {"fps": 24, "samples": ["3", 0], "filename_prefix": "generic_"}
+  },
+  "5": {
+    "class_type": "Distributed Seed",
+    "inputs": {"seed": 0, "distributed_config": {}}
+  },
+  "6": {
+    "class_type": "Distributed Collector",
+    "inputs": {"images": ["4", 0], "workers": "auto"}
+  }
+}

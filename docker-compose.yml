@@ -1,0 +1,126 @@
+# =============================================================================
+# OpenMind — Full Stack Deployment
+# =============================================================================
+#
+# Usage:
+#   1. Copy this file to each pod member's machine
+#   2. Adjust IPs and GPU settings per machine
+#   3. docker compose up -d
+#
+# Machine roles:
+#   - Coordinator (1 machine):  runs dispatcher + comfyui master
+#   - Worker (all other GPU machines): runs comfyui worker
+#   - Everyone: runs hyperspace node + odysseus (outside docker)
+# =============================================================================
+
+version: "3.9"
+
+x-common: &common
+  restart: unless-stopped
+  networks:
+    - pod-net
+
+services:
+  # ── Dispatcher (glue between Odysseus + ComfyUI + Hyperspace) ──
+  dispatcher:
+    <<: *common
+    build: ./dispatcher
+    container_name: openmind-dispatcher
+    ports:
+      - "9000:9000"
+    volumes:
+      - ./dispatcher/config.yaml:/app/config.yaml:ro
+      - pod_output:/tmp/pod-output
+    environment:
+      - POD_API_KEY=${POD_API_KEY:-}
+      - COMFYUI_MASTER_URL=http://comfyui-master:8188
+      - HYPERSPACE_API_URL=http://host.docker.internal:8080
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/api/v1/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # ── ComfyUI Master (on coordinator machine only) ──
+  # Disable this on worker-only machines
+  comfyui-master:
+    <<: *common
+    image: ghcr.io/robertvoy/comfyui:latest
+    container_name: comfyui-master
+    profiles: ["coordinator"]
+    ports:
+      - "8188:8188"
+    volumes:
+      - comfyui_master_data:/workspace
+      - ./comfyui_workflows:/workspace/workflows:ro
+      - /var/run/docker.sock:/var/run/docker.sock  # for GPU access
+    environment:
+      - COMFYUI_EXTRA_ARGS=--enable-cors-header --listen --port 8188
+      - NVIDIA_VISIBLE_DEVICES=all
+      - COMFYUI_DISTRIBUTED_ROLE=master
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8188/system_stats"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 120s
+
+  # ── ComfyUI Worker (on each GPU machine) ──
+  comfyui-worker:
+    <<: *common
+    image: ghcr.io/robertvoy/comfyui:latest
+    container_name: comfyui-worker
+    network_mode: host  # needed for worker registration
+    volumes:
+      - comfyui_worker_data:/workspace
+      - ./comfyui_workflows:/workspace/workflows:ro
+    environment:
+      - COMFYUI_EXTRA_ARGS=--enable-cors-header --listen --port 8188
+      - NVIDIA_VISIBLE_DEVICES=all
+      - COMFYUI_DISTRIBUTED_ROLE=worker
+      - COMFYUI_DISTRIBUTED_MASTER_URL=http://${MASTER_IP:-100.64.0.1}:8188
+      - WORKER_NAME=${WORKER_NAME:-worker}
+      - WORKER_GPU=${WORKER_GPU:-auto}
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8188/system_stats"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 120s
+
+  # ── Optional: Redis (for production queue persistence) ──
+  redis:
+    <<: *common
+    image: redis:7-alpine
+    container_name: pod-redis
+    profiles: ["production"]
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    command: redis-server --appendonly yes --maxmemory 512mb --maxmemory-policy allkeys-lru
+
+networks:
+  pod-net:
+    driver: bridge
+    name: openmind-net
+
+volumes:
+  pod_output:
+  comfyui_master_data:
+  comfyui_worker_data:
+  redis_data:

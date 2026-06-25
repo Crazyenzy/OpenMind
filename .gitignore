@@ -1,0 +1,58 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+*.egg-info/
+dist/
+build/
+.eggs/
+*.egg
+
+# Virtual environments
+venv/
+.venv/
+env/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Docker
+.docker/
+
+# Generated output
+/tmp/
+pod-output/
+
+# Environment / secrets
+.env
+.env.local
+*.pem
+*.key
+
+# ComfyUI data (large model files)
+comfyui_data/
+models/
+*.safetensors
+*.ckpt
+*.bin
+
+# Redis dump
+dump.rdb
+
+# Test artifacts
+.pytest_cache/
+htmlcov/
+.coverage
+
+# Pod coordinator marker (machine-specific)
+.pod-coordinator

@@ -1,0 +1,44 @@
+# OpenMind Dispatcher configuration
+# Override with environment variables where noted
+# OpenMind — private distributed AI mesh (Odysseus + Hyperspace + ComfyUI-Distributed)
+
+hyperspace:
+  api_url: "http://127.0.0.1:8080"    # POD_API_URL env var
+  api_key: ""                           # POD_API_KEY env var
+
+comfyui:
+  master_url: "http://127.0.0.1:8188"  # COMFYUI_MASTER_URL env var
+
+# Authentication — single shared API key for the pod
+# Set via DISPATCHER_API_KEY env var or here
+# Leave empty to disable auth (not recommended in production)
+auth:
+  api_key: ""                           # DISPATCHER_API_KEY env var
+
+# Redis for job/worker state persistence
+# Optional — falls back to in-memory if unavailable
+redis:
+  url: "redis://localhost:6379"         # REDIS_URL env var
+  key_prefix: "openmind:"
+
+# Job retry settings
+retry:
+  max_retries: 2                        # Times to retry a failed job on another worker
+  retry_delay_seconds: 5                # Wait before retrying
+
+limits:
+  max_concurrent_video_jobs: 4
+  max_concurrent_image_jobs: 8
+  video_timeout_seconds: 600
+  image_timeout_seconds: 120
+
+# "auto" = use system temp dir (cross-platform). Or set an absolute path.
+output_dir: "auto"                      # DISPATCHER_OUTPUT_DIR env var
+
+# Pre-configured workers (optional — can register dynamically)
+workers:
+  # - id: "worker-1"
+  #   comfyui_url: "http://100.64.0.2:8188"
+  #   name: "Bhupesh-RTX4090"
+  #   gpu: "RTX 4090"
+  #   vram_gb: 24
