@@ -62,6 +62,16 @@ else
     warn "No discrete GPU detected. This machine can only run CPU inference."
 fi
 
+# ── Create/activate Python venv ────────────────────────────────────
+VENV_DIR="${OPENMIND_VENV:-$HOME/.openmind-venv}"
+if [[ ! -d "$VENV_DIR" ]]; then
+    info "Creating Python virtual environment at $VENV_DIR..."
+    python3 -m venv "$VENV_DIR"
+    log "Virtual environment created"
+fi
+source "$VENV_DIR/bin/activate"
+log "Using Python venv: $VENV_DIR"
+
 # ── Auto-detect role ───────────────────────────────────────────────
 if [[ "$ROLE" == "auto" ]]; then
     if [[ -f .pod-coordinator ]]; then
@@ -182,7 +192,7 @@ echo "════════════════════════�
 
 if [[ "$ROLE" == "coordinator" ]]; then
     info "Installing dispatcher dependencies..."
-    pip install fastapi uvicorn httpx pyyaml pydantic 2>/dev/null || warn "pip install had warnings"
+    pip install -r "$SCRIPT_DIR/dispatcher/requirements.txt" 2>/dev/null || warn "pip install had warnings"
     log "Dispatcher ready to run: python dispatcher/main.py"
 else
     log "Skipping dispatcher (worker-only machine)"
@@ -201,6 +211,11 @@ if [[ -d "$MCP_DIR" ]]; then
     info "Copying MCP servers to $MCP_DIR..."
     cp "$SCRIPT_DIR/mcp_servers/video_gen_server.py" "$MCP_DIR/" 2>/dev/null || true
     cp "$SCRIPT_DIR/mcp_servers/pod_manager_server.py" "$MCP_DIR/" 2>/dev/null || true
+    # Install MCP server dependencies
+    if [[ -f "$SCRIPT_DIR/mcp_servers/requirements.txt" ]]; then
+        info "Installing MCP server dependencies..."
+        pip install -r "$SCRIPT_DIR/mcp_servers/requirements.txt" 2>/dev/null || warn "MCP pip install had warnings"
+    fi
     log "MCP servers installed. Add to your Odysseus config:"
     echo ""
     echo "  mcp_servers:"
@@ -224,6 +239,7 @@ echo ""
 echo "Machine role:  $ROLE"
 echo "Tailscale IP:  ${TAILSCALE_IP:-not connected}"
 echo "GPU:           ${GPU_NAME:-none} (${GPU_VRAM_GB:-0} GB)"
+echo "Python venv: $VENV_DIR"
 echo ""
 echo "─── Next steps ───────────────────────────────────────────────"
 echo ""
@@ -241,6 +257,8 @@ echo "  1. Join the Hyperspace pod:"
 echo "       hyperspace pod join <invite-code>"
 echo "  2. Start ComfyUI worker:"
 echo "       cd \$HOME/comfyui && python main.py --enable-cors-header --listen"
+echo ""
+echo "  NOTE: Activate the venv first: source $VENV_DIR/bin/activate"
 echo ""
 echo "All members:"
 echo "  1. Start Odysseus"

@@ -3,9 +3,14 @@
 # =============================================================================
 #
 # Usage:
-#   1. Copy this file to each pod member's machine
-#   2. Adjust IPs and GPU settings per machine
-#   3. docker compose up -d
+#   COORDINATOR machine:
+#     docker compose --profile coordinator up -d
+#
+#   WORKER machine (set MASTER_IP to coordinator's Tailscale IP):
+#     MASTER_IP=100.64.x.x docker compose --profile worker up -d
+#
+#   PRODUCTION (adds Redis for persistence):
+#     docker compose --profile coordinator --profile production up -d
 #
 # Machine roles:
 #   - Coordinator (1 machine):  runs dispatcher + comfyui master
@@ -13,19 +18,15 @@
 #   - Everyone: runs hyperspace node + odysseus (outside docker)
 # =============================================================================
 
-version: "3.9"
-
-x-common: &common
-  restart: unless-stopped
-  networks:
-    - pod-net
-
 services:
   # ── Dispatcher (glue between Odysseus + ComfyUI + Hyperspace) ──
   dispatcher:
-    <<: *common
-    build: ./dispatcher
+    build:
+      context: .
+      dockerfile: dispatcher/Dockerfile
     container_name: openmind-dispatcher
+    profiles: ["coordinator"]
+    restart: unless-stopped
     ports:
       - "9000:9000"
     volumes:
@@ -33,27 +34,35 @@ services:
       - pod_output:/tmp/pod-output
     environment:
       - POD_API_KEY=${POD_API_KEY:-}
-      - COMFYUI_MASTER_URL=http://comfyui-master:8188
+      - DISPATCHER_API_KEY=${DISPATCHER_API_KEY:-}
+      - DISPATCHER_CORS_ORIGINS=${DISPATCHER_CORS_ORIGINS:-*}
+      - COMFYUI_MASTER_URL=http://${MASTER_IP:-127.0.0.1}:8188
       - HYPERSPACE_API_URL=http://host.docker.internal:8080
+      - REDIS_URL=${REDIS_URL:-redis://pod-redis:6379}
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:9000/api/v1/health"]
       interval: 30s
       timeout: 10s
       retries: 3
+    depends_on:
+      comfyui-master:
+        condition: service_healthy
+        required: false
 
   # ── ComfyUI Master (on coordinator machine only) ──
-  # Disable this on worker-only machines
   comfyui-master:
-    <<: *common
-    image: ghcr.io/robertvoy/comfyui:latest
+    build:
+      context: .
+      dockerfile: comfyui/Dockerfile
     container_name: comfyui-master
     profiles: ["coordinator"]
-    ports:
-      - "8188:8188"
+    restart: unless-stopped
+    # Use host networking so workers on other machines can reach
+    # the master via the host's Tailscale IP directly
+    network_mode: host
     volumes:
-      - comfyui_master_data:/workspace
+      - comfyui_master_data:/workspace/ComfyUI/models
       - ./comfyui_workflows:/workspace/workflows:ro
-      - /var/run/docker.sock:/var/run/docker.sock  # for GPU access
     environment:
       - COMFYUI_EXTRA_ARGS=--enable-cors-header --listen --port 8188
       - NVIDIA_VISIBLE_DEVICES=all
@@ -74,12 +83,15 @@ services:
 
   # ── ComfyUI Worker (on each GPU machine) ──
   comfyui-worker:
-    <<: *common
-    image: ghcr.io/robertvoy/comfyui:latest
+    build:
+      context: .
+      dockerfile: comfyui/Dockerfile
     container_name: comfyui-worker
-    network_mode: host  # needed for worker registration
+    profiles: ["worker"]
+    restart: unless-stopped
+    network_mode: host
     volumes:
-      - comfyui_worker_data:/workspace
+      - comfyui_worker_data:/workspace/ComfyUI/models
       - ./comfyui_workflows:/workspace/workflows:ro
     environment:
       - COMFYUI_EXTRA_ARGS=--enable-cors-header --listen --port 8188
@@ -104,20 +116,15 @@ services:
 
   # ── Optional: Redis (for production queue persistence) ──
   redis:
-    <<: *common
     image: redis:7-alpine
     container_name: pod-redis
     profiles: ["production"]
+    restart: unless-stopped
     ports:
       - "6379:6379"
     volumes:
       - redis_data:/data
     command: redis-server --appendonly yes --maxmemory 512mb --maxmemory-policy allkeys-lru
-
-networks:
-  pod-net:
-    driver: bridge
-    name: openmind-net
 
 volumes:
   pod_output:

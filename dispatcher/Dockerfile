@@ -4,11 +4,16 @@ LABEL description="Central glue service for OpenMind distributed AI mesh"
 
 WORKDIR /app
 
-COPY requirements.txt .
+# Install Python dependencies
+COPY dispatcher/requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-COPY main.py .
-COPY config.yaml .
+# Copy dispatcher code
+COPY dispatcher/main.py .
+COPY dispatcher/config.yaml .
+
+# Copy workflow templates (main.py loads them via ../comfyui_workflows/)
+COPY comfyui_workflows/ /app/comfyui_workflows/
 
 RUN mkdir -p /tmp/pod-output
 

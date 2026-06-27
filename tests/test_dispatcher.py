@@ -226,6 +226,26 @@ class TestWorkflowBuilders:
         assert workflow["3"]["inputs"]["width"] == 1920
         assert workflow["3"]["inputs"]["height"] == 1080
 
+    def test_video_workflow_uses_model_specific_sampler(self):
+        """Verify Kimi's finding is fixed: dynamic builder must not hardcode WanVideoSampler."""
+        job_ltx = {"prompt": "test", "model": "ltx-video", "duration": 5, "resolution": "720p", "fps": 24}
+        workflow_ltx = _build_dynamic_video_workflow(job_ltx)
+        assert workflow_ltx["3"]["class_type"] == "LTXVideoSampler"
+
+        job_wan = {"prompt": "test", "model": "wan2.2", "duration": 5, "resolution": "720p", "fps": 24}
+        workflow_wan = _build_dynamic_video_workflow(job_wan)
+        assert workflow_wan["3"]["class_type"] == "WanVideoSampler"
+
+        job_hunyuan = {"prompt": "test", "model": "hunyuan", "duration": 5, "resolution": "720p", "fps": 24}
+        workflow_hunyuan = _build_dynamic_video_workflow(job_hunyuan)
+        assert workflow_hunyuan["3"]["class_type"] == "HunyuanVideoSampler"
+
+    def test_video_workflow_unknown_model_falls_back_to_ksampler(self):
+        """Unknown model should fall back to KSampler, not crash."""
+        job = {"prompt": "test", "model": "unknown-model-xyz", "duration": 5, "resolution": "720p", "fps": 24}
+        workflow = _build_dynamic_video_workflow(job)
+        assert workflow["3"]["class_type"] == "KSampler"
+
     def test_image_workflow_has_required_nodes(self):
         job = {"prompt": "test", "width": 1024, "height": 1024}
         workflow = _build_dynamic_image_workflow(job)

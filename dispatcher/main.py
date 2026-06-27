@@ -19,6 +19,7 @@ Features:
 """
 
 import asyncio
+import hmac
 import json
 import logging
 import os
@@ -85,6 +86,11 @@ else:
 OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 
 MAX_CONCURRENT_VIDEO_JOBS = config.get("limits", {}).get("max_concurrent_video_jobs", 4)
+
+# CORS — configurable via env var; defaults to "*" for dev, restrict in production
+CORS_ORIGINS = os.environ.get(
+    "DISPATCHER_CORS_ORIGINS", config.get("cors", {}).get("origins", "*")
+).split(",")
 
 # ── Workflow filename mapping ──────────────────────────────────────
 # Maps model names used in the API to actual workflow file basenames.
@@ -248,7 +254,7 @@ class WorkerInfo(BaseModel):
 # ── In-Memory State ────────────────────────────────────────────────
 
 app = FastAPI(title="OpenMind Dispatcher", version="2.0.0")
-app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])
+app.add_middleware(CORSMiddleware, allow_origins=CORS_ORIGINS, allow_methods=["*"], allow_headers=["*"])
 
 jobs: dict[str, dict] = {}
 workers: dict[str, dict] = {}
@@ -280,16 +286,16 @@ async def auth_middleware(request: Request, call_next):
     if path in AUTH_EXEMPT_PATHS:
         return await call_next(request)
 
-    # Check Authorization header
+    # Check Authorization header (using hmac.compare_digest to prevent timing attacks)
     auth_header = request.headers.get("Authorization", "")
     if auth_header.startswith("Bearer "):
         token = auth_header[7:]
-        if token == DISPATCHER_API_KEY:
+        if hmac.compare_digest(token, DISPATCHER_API_KEY):
             return await call_next(request)
 
     # Also accept X-API-Key header
     api_key_header = request.headers.get("X-API-Key", "")
-    if api_key_header == DISPATCHER_API_KEY:
+    if api_key_header and hmac.compare_digest(api_key_header, DISPATCHER_API_KEY):
         return await call_next(request)
 
     return JSONResponse(
@@ -832,9 +838,15 @@ async def _process_job(job_id: str):
         job["completed_at"] = time.time()
         logger.info(f"✅ Job {job_id} completed successfully")
 
-    except Exception as e:
-        logger.warning(f"❌ Job {job_id} failed: {e}")
+    except (httpx.HTTPError, httpx.ConnectError, IOError, OSError, TimeoutError) as e:
+        # Retryable infrastructure errors — trigger retry logic
+        logger.warning(f"❌ Job {job_id} failed (retryable): {e}")
         await _handle_job_failure(job_id, job, str(e))
+    except Exception as e:
+        # Programming errors — fail immediately, don't waste GPU time retrying
+        logger.error(f"💥 Job {job_id} fatal error: {e}", exc_info=True)
+        job["status"] = JobStatus.FAILED.value
+        job["error"] = f"Internal error: {e}"
 
     finally:
         active_jobs.discard(job_id)
@@ -1046,10 +1058,25 @@ async def serve_output(filename: str):
 
 # ── Workflow Builders ──────────────────────────────────────────────
 
+# Model name → ComfyUI sampler class_type mapping for dynamic workflows
+_VIDEO_SAMPLER_CLASS = {
+    "wan2.2": "WanVideoSampler",
+    "wan2.2-i2v": "WanVideoSampler",
+    "ltx-video": "LTXVideoSampler",
+    "hunyuan": "HunyuanVideoSampler",
+    "cogvideox": "CogVideoXSampler",
+    "animatediff": "AnimateDiffSampler",
+}
+
+
 def _build_dynamic_video_workflow(job: dict) -> dict:
-    """Build a basic ComfyUI video workflow dynamically."""
+    """Build a basic ComfyUI video workflow dynamically.
+
+    Uses model-specific sampler class_type instead of hardcoding WanVideoSampler.
+    """
     prompt = job.get("prompt", "")
     neg = job.get("negative_prompt", "")
+    model = job.get("model", "wan2.2")
     duration = job.get("duration", 5)
     resolution = job.get("resolution", "720p")
     fps = job.get("fps", 24)
@@ -1057,6 +1084,7 @@ def _build_dynamic_video_workflow(job: dict) -> dict:
 
     w, h = {"480p": (640, 480), "720p": (1280, 720), "1080p": (1920, 1080)}.get(resolution, (1280, 720))
     frames = int(duration * fps)
+    sampler_class = _VIDEO_SAMPLER_CLASS.get(model, "KSampler")
 
     return {
         "1": {"inputs": {"text": prompt}, "class_type": "CLIPTextEncode"},
@@ -1066,7 +1094,7 @@ def _build_dynamic_video_workflow(job: dict) -> dict:
                 "width": w, "height": h, "num_frames": frames, "seed": seed,
                 "positive": ["1", 0], "negative": ["2", 0],
             },
-            "class_type": "WanVideoSampler",
+            "class_type": sampler_class,
         },
         "4": {
             "inputs": {

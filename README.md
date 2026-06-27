@@ -250,7 +250,7 @@ OpenMind would not exist without these three incredible open-source projects. Al
       <br />
       Per-person AI workspace — chat, agents, deep research, docs, memory, email, calendar
       <br />
-      <sub>License: Apache 2.0</sub>
+      <sub>License: AGPL-3.0</sub>
     </td>
     <td align="center" width="33%">
       <a href="https://github.com/hyperspaceai/agi">
@@ -283,4 +283,6 @@ OpenMind would not exist without these three incredible open-source projects. Al
 
 ## License
 
-MIT — all glue code in this repo. Individual components retain their original licenses (Odysseus: Apache 2.0, Hyperspace: MIT, ComfyUI-Distributed: MIT).
+MIT — all glue code in this repo. Individual components retain their original licenses (Odysseus: AGPL-3.0, Hyperspace: MIT, ComfyUI-Distributed: MIT).
+
+> **Note on AGPL-3.0**: Odysseus is licensed under AGPL-3.0. If you distribute a modified version of OpenMind that includes Odysseus components, the AGPL requires you to make your source code available. The OpenMind glue code itself (dispatcher, MCP servers, setup scripts) is MIT-licensed and can be used independently.

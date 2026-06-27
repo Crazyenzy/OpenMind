@@ -1,0 +1,32 @@
+{
+  "1": {
+    "class_type": "CLIPTextEncode",
+    "inputs": {"text": "PROMPT_PLACEHOLDER"}
+  },
+  "2": {
+    "class_type": "CLIPTextEncode",
+    "inputs": {"text": "NEGATIVE_PLACEHOLDER"}
+  },
+  "3": {
+    "class_type": "AnimateDiffSampler",
+    "inputs": {
+      "cfg": 7.5, "seed": 0, "steps": 25,
+      "width": 512, "height": 512,
+      "negative": ["2", 0], "positive": ["1", 0],
+      "num_frames": 16,
+      "scheduler": "normal", "sampler_name": "euler_ancestral"
+    }
+  },
+  "4": {
+    "class_type": "SaveVideo",
+    "inputs": {"fps": 8, "samples": ["3", 0], "filename_prefix": "animatediff_"}
+  },
+  "5": {
+    "class_type": "Distributed Seed",
+    "inputs": {"seed": 0, "distributed_config": {}}
+  },
+  "6": {
+    "class_type": "Distributed Collector",
+    "inputs": {"images": ["4", 0], "workers": "auto"}
+  }
+}

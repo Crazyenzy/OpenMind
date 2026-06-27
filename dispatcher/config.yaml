@@ -15,6 +15,12 @@ comfyui:
 auth:
   api_key: ""                           # DISPATCHER_API_KEY env var
 
+# CORS origins — comma-separated list of allowed origins
+# Set via DISPATCHER_CORS_ORIGINS env var
+# Use "*" for dev, restrict to your domain in production
+cors:
+  origins: "*"                          # DISPATCHER_CORS_ORIGINS env var
+
 # Redis for job/worker state persistence
 # Optional — falls back to in-memory if unavailable
 redis:
