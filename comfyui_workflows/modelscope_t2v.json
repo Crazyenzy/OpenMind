@@ -1,0 +1,53 @@
+{
+  "1": {
+    "inputs": {
+      "ckpt_name": "modelscope-damo-text2video.safetensors"
+    },
+    "class_type": "ModelScopeLoader"
+  },
+  "2": {
+    "inputs": {
+      "text": "A cat playing with a ball of yarn",
+      "clip": ["1", 1]
+    },
+    "class_type": "CLIPTextEncode"
+  },
+  "3": {
+    "inputs": {
+      "text": "blurry, low quality, distorted, watermark",
+      "clip": ["1", 1]
+    },
+    "class_type": "CLIPTextEncode"
+  },
+  "4": {
+    "inputs": {
+      "model": ["1", 0],
+      "positive": ["2", 0],
+      "negative": ["3", 0],
+      "width": 256,
+      "height": 256,
+      "num_frames": 16,
+      "fps": 8,
+      "steps": 50,
+      "cfg": 7.5,
+      "seed": 0
+    },
+    "class_type": "ModelScopeSampler"
+  },
+  "5": {
+    "inputs": {
+      "samples": ["4", 0],
+      "vae": ["1", 2]
+    },
+    "class_type": "VAEDecode"
+  },
+  "6": {
+    "inputs": {
+      "images": ["5", 0],
+      "filename_prefix": "modelscope_video",
+      "fps": 8,
+      "format": "video/h264-mp4"
+    },
+    "class_type": "SaveAnimatedWEBP"
+  }
+}

@@ -1,0 +1,54 @@
+{
+  "1": {
+    "inputs": {
+      "ckpt_name": "opensora-v1.2.safetensors"
+    },
+    "class_type": "OpenSoraLoader"
+  },
+  "2": {
+    "inputs": {
+      "text": "A beautiful sunset over the ocean",
+      "clip": ["1", 1]
+    },
+    "class_type": "CLIPTextEncode"
+  },
+  "3": {
+    "inputs": {
+      "text": "blurry, low quality, distorted",
+      "clip": ["1", 1]
+    },
+    "class_type": "CLIPTextEncode"
+  },
+  "4": {
+    "inputs": {
+      "model": ["1", 0],
+      "positive": ["2", 0],
+      "negative": ["3", 0],
+      "width": 640,
+      "height": 480,
+      "num_frames": 16,
+      "fps": 24,
+      "steps": 30,
+      "cfg": 7.0,
+      "seed": 0,
+      "scheduler": "ddim"
+    },
+    "class_type": "OpenSoraSampler"
+  },
+  "5": {
+    "inputs": {
+      "samples": ["4", 0],
+      "vae": ["1", 2]
+    },
+    "class_type": "VAEDecode"
+  },
+  "6": {
+    "inputs": {
+      "images": ["5", 0],
+      "filename_prefix": "opensora_video",
+      "fps": 24,
+      "format": "video/h264-mp4"
+    },
+    "class_type": "SaveAnimatedWEBP"
+  }
+}

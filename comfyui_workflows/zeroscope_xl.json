@@ -1,0 +1,63 @@
+{
+  "1": {
+    "inputs": {
+      "ckpt_name": "zeroscope_v2_XL.safetensors"
+    },
+    "class_type": "CheckpointLoaderSimple"
+  },
+  "2": {
+    "inputs": {
+      "text": "A timelapse of a flower blooming",
+      "clip": ["1", 1]
+    },
+    "class_type": "CLIPTextEncode"
+  },
+  "3": {
+    "inputs": {
+      "text": "blurry, low quality, distorted, watermark, text",
+      "clip": ["1", 1]
+    },
+    "class_type": "CLIPTextEncode"
+  },
+  "4": {
+    "inputs": {
+      "width": 576,
+      "height": 320,
+      "batch_size": 1,
+      "num_frames": 24,
+      "seed": 0
+    },
+    "class_type": "EmptyLatentImage"
+  },
+  "5": {
+    "inputs": {
+      "model": ["1", 0],
+      "positive": ["2", 0],
+      "negative": ["3", 0],
+      "latent_image": ["4", 0],
+      "steps": 50,
+      "cfg": 7.5,
+      "sampler_name": "euler",
+      "scheduler": "normal",
+      "denoise": 1.0,
+      "seed": 0
+    },
+    "class_type": "KSampler"
+  },
+  "6": {
+    "inputs": {
+      "samples": ["5", 0],
+      "vae": ["1", 2]
+    },
+    "class_type": "VAEDecode"
+  },
+  "7": {
+    "inputs": {
+      "images": ["6", 0],
+      "filename_prefix": "zeroscope_video",
+      "fps": 8,
+      "format": "video/h264-mp4"
+    },
+    "class_type": "SaveAnimatedWEBP"
+  }
+}

@@ -1,0 +1,85 @@
+{
+  "1": {
+    "inputs": {
+      "ckpt_name": "svd_xt_1_1.safetensors"
+    },
+    "class_type": "ImageOnlyCheckpointLoader"
+  },
+  "2": {
+    "inputs": {
+      "image": ["5", 0],
+      "vae": ["1", 2]
+    },
+    "class_type": "VAEEncode"
+  },
+  "3": {
+    "inputs": {
+      "width": 1024,
+      "height": 576,
+      "batch_size": 1,
+      "seed": 0
+    },
+    "class_type": "EmptyLatentImage"
+  },
+  "4": {
+    "inputs": {
+      "model": ["1", 0],
+      "positive": ["6", 0],
+      "negative": ["7", 0],
+      "latent_image": ["3", 0],
+      "steps": 30,
+      "cfg": 2.5,
+      "sampler_name": "euler",
+      "scheduler": "normal",
+      "denoise": 1.0,
+      "seed": 0
+    },
+    "class_type": "KSampler"
+  },
+  "5": {
+    "inputs": {
+      "image": "input_image.png"
+    },
+    "class_type": "LoadImage"
+  },
+  "6": {
+    "inputs": {
+      "clip_vision": ["1", 1],
+      "init_image": ["2", 0],
+      "vae": ["1", 2],
+      "width": 1024,
+      "height": 576,
+      "crop_center": true,
+      "video_frames": 25,
+      "motion_bucket_id": 127,
+      "fps": 6,
+      "augmentation_level": 0.0,
+      "seed": 0
+    },
+    "class_type": "SVD_img2vid_Conditioning"
+  },
+  "7": {
+    "inputs": {
+      "conditioning": ["6", 0]
+    },
+    "class_type": "ConditioningSetTimestepRange"
+  },
+  "8": {
+    "inputs": {
+      "samples": ["4", 0],
+      "vae": ["1", 2]
+    },
+    "class_type": "VAEDecode"
+  },
+  "9": {
+    "inputs": {
+      "images": ["8", 0],
+      "filename_prefix": "svd_video",
+      "fps": 6,
+      "format": "video/h264-mp4",
+      "lossless": false,
+      "quality": 85
+    },
+    "class_type": "SaveAnimatedWEBP"
+  }
+}
